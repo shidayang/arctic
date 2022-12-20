@@ -18,7 +18,10 @@
 
 package com.netease.arctic.iceberg.optimize;
 
+import com.netease.arctic.io.CloseablePredicate;
+import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.utils.StructLikeSet;
+import java.io.IOException;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.DeleteFile;
@@ -33,6 +36,7 @@ import org.apache.iceberg.data.avro.DataReader;
 import org.apache.iceberg.data.parquet.GenericParquetReaders;
 import org.apache.iceberg.expressions.Expressions;
 import org.apache.iceberg.io.CloseableIterable;
+import org.apache.iceberg.io.CloseableIterator;
 import org.apache.iceberg.io.InputFile;
 import org.apache.iceberg.parquet.Parquet;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableList;
@@ -71,7 +75,7 @@ public abstract class DeleteFilter<T> {
   private final List<DeleteFile> eqDeletes;
   private final Schema requiredSchema;
   private final Accessor<StructLike> posAccessor;
-  private List<Predicate<T>> eqDeletePredicate;
+  private List<CloseablePredicate<T>> eqDeletePredicate;
   private Set<Long> positionSet;
 
   protected DeleteFilter(FileScanTask task, Schema tableSchema, Schema requestedSchema) {
@@ -118,11 +122,11 @@ public abstract class DeleteFilter<T> {
     return applyEqDeletes(applyPosDeletes(records));
   }
 
-  private List<Predicate<T>> applyEqDeletes() {
+  private List<CloseablePredicate<T>> applyEqDeletes() {
     if (eqDeletePredicate != null) {
       return eqDeletePredicate;
     }
-    List<Predicate<T>> isInDeleteSets = Lists.newArrayList();
+    List<CloseablePredicate<T>> isInDeleteSets = Lists.newArrayList();
     if (eqDeletes.isEmpty()) {
       this.eqDeletePredicate = isInDeleteSets;
       return isInDeleteSets;
@@ -150,7 +154,8 @@ public abstract class DeleteFilter<T> {
           deleteSchema.asStruct());
 
       Predicate<T> isInDeleteSet = record -> deleteSet.contains(projectRow.wrap(asStructLike(record)));
-      isInDeleteSets.add(isInDeleteSet);
+      CloseablePredicate<T> closeablePredicate = new CloseablePredicate<>(isInDeleteSet, deleteSet);
+      isInDeleteSets.add(closeablePredicate);
     }
     this.eqDeletePredicate = isInDeleteSets;
     return isInDeleteSets;
@@ -176,6 +181,7 @@ public abstract class DeleteFilter<T> {
   public CloseableIterable<T> findEqualityDeleteRows(CloseableIterable<T> records) {
     // Predicate to test whether a row has been deleted by equality deletions.
     Predicate<T> deletedRows = applyEqDeletes().stream()
+        .map(s -> (Predicate<T>)s)
         .reduce(Predicate::or)
         .orElse(t -> false);
 
@@ -284,5 +290,60 @@ public abstract class DeleteFilter<T> {
     }
 
     return new Schema(columns);
+  }
+
+
+  private class CloseableIterableWithOtherCloseable<T> implements CloseableIterable<T> {
+
+    private CloseableIterable<T> inner;
+
+    public CloseableIterableWithOtherCloseable(CloseableIterable<T> inner) {
+      this.inner = inner;
+    }
+
+    @Override
+    public CloseableIterator<T> iterator() {
+      CloseableIterator<T> closeableIterator = inner.iterator();
+      return new CloseableIteratorWithOtherCloseable<>(closeableIterator);
+    }
+
+    @Override
+    public void close() throws IOException {
+      inner.close();
+      if (eqDeletePredicate != null) {
+        for (CloseablePredicate closeablePredicate: eqDeletePredicate) {
+          closeablePredicate.close();
+        }
+      }
+    }
+  }
+
+  private class CloseableIteratorWithOtherCloseable<T> implements CloseableIterator<T> {
+
+    private CloseableIterator<T> closeableIterator;
+
+    public CloseableIteratorWithOtherCloseable(CloseableIterator<T> closeableIterator) {
+      this.closeableIterator = closeableIterator;
+    }
+
+    @Override
+    public void close() throws IOException {
+      closeableIterator.close();
+      if (eqDeletePredicate != null) {
+        for (CloseablePredicate closeablePredicate: eqDeletePredicate) {
+          closeablePredicate.close();
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      return closeableIterator.hasNext();
+    }
+
+    @Override
+    public T next() {
+      return closeableIterator.next();
+    }
   }
 }
