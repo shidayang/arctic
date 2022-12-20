@@ -61,12 +61,12 @@ public class TestStructLikeMap {
   @Test
   public void testSpillableMap() throws UnsupportedEncodingException {
     testMap(StructLikeSpillableMap.create(TYPE,
-            50L, TestRocksDBBackend.CF_NAME));
+            0L, TestRocksDBBackend.CF_NAME));
   }
 
   private void testMap(StructLikeBaseMap actualMap) throws UnsupportedEncodingException {
     Map<StructLike, ChangedLsn> expectedMap = Maps.newHashMap();
-    for (long i = 0; i < 100; i++) {
+    for (long i = 0; i < 1; i++) {
       StructLikeImpl key = new StructLikeImpl();
       expectedMap.put(key, ChangedLsn.of(i, i));
       actualMap.put(key, ChangedLsn.of(i, i));
