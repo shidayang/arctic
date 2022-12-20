@@ -21,9 +21,10 @@ package com.netease.arctic.utils;
 import com.netease.arctic.utils.map.StructLikeBaseMap;
 import com.netease.arctic.utils.map.StructLikeMemoryMap;
 import com.netease.arctic.utils.map.StructLikeSpillableMap;
-import java.io.Closeable;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.types.Types;
+
+import java.io.Closeable;
 
 public class StructLikeSet implements Closeable {
 

@@ -19,9 +19,7 @@
 package com.netease.arctic.iceberg.optimize;
 
 import com.netease.arctic.io.CloseablePredicate;
-import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.utils.StructLikeSet;
-import java.io.IOException;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.DeleteFile;
@@ -52,6 +50,7 @@ import org.apache.iceberg.util.Filter;
 import org.apache.iceberg.util.StructProjection;
 import org.apache.parquet.Preconditions;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
