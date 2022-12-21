@@ -33,6 +33,7 @@ import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.KeyedTable;
 import com.netease.arctic.table.PrimaryKeySpec;
 import com.netease.arctic.table.WriteOperationKind;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.DeleteFile;
@@ -132,16 +133,15 @@ public class MajorExecutor extends BaseExecutor {
       primaryKeySpec = keyedTable.primaryKeySpec();
     }
 
-    AdaptHiveGenericArcticDataReader arcticDataReader;
+    StructLikeFactory structLikeFactory = new StructLikeFactory();
     if (config.isEnableSpillMap()) {
-      arcticDataReader = new AdaptHiveGenericArcticDataReader(table.io(), table.schema(), requiredSchema, primaryKeySpec,
-          table.properties().get(TableProperties.DEFAULT_NAME_MAPPING), false,
-          IdentityPartitionConverters::convertConstant, sourceNodes, false, maxInMemorySizeInBytes, mapIdentifier);
-    } else {
-      arcticDataReader = new AdaptHiveGenericArcticDataReader(table.io(), table.schema(), requiredSchema, primaryKeySpec,
-          table.properties().get(TableProperties.DEFAULT_NAME_MAPPING), false,
-          IdentityPartitionConverters::convertConstant, sourceNodes, false);
+      structLikeFactory = new StructLikeFactory(maxInMemorySizeInBytes, mapIdentifier);
     }
+
+    AdaptHiveGenericArcticDataReader arcticDataReader =
+        new AdaptHiveGenericArcticDataReader(table.io(), table.schema(), requiredSchema, primaryKeySpec,
+        table.properties().get(TableProperties.DEFAULT_NAME_MAPPING), false,
+        IdentityPartitionConverters::convertConstant, sourceNodes, false, structLikeFactory);
 
     List<ArcticFileScanTask> fileScanTasks = dataFiles.stream()
         .map(file -> {

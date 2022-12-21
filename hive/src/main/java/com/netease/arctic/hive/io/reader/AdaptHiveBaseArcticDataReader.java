@@ -22,6 +22,7 @@ import com.netease.arctic.data.DataTreeNode;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.reader.BaseArcticDataReader;
 import com.netease.arctic.table.PrimaryKeySpec;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.io.CloseableIterable;
@@ -48,8 +49,7 @@ public abstract class AdaptHiveBaseArcticDataReader<T> extends BaseArcticDataRea
       BiFunction<Type, Object, Object> convertConstant,
       Set<DataTreeNode> sourceNodes,
       boolean reuseContainer,
-      Long maxInMemorySizeInBytes,
-      String mapIdentifier) {
+      StructLikeFactory structLikeFactory) {
     super(
         fileIO,
         tableSchema,
@@ -60,8 +60,7 @@ public abstract class AdaptHiveBaseArcticDataReader<T> extends BaseArcticDataRea
         convertConstant,
         sourceNodes,
         reuseContainer,
-        maxInMemorySizeInBytes,
-        mapIdentifier);
+        structLikeFactory);
   }
 
   public AdaptHiveBaseArcticDataReader(

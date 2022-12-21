@@ -26,6 +26,7 @@ import com.netease.arctic.scan.ArcticFileScanTask;
 import com.netease.arctic.scan.BaseArcticFileScanTask;
 import com.netease.arctic.scan.CombinedScanTask;
 import com.netease.arctic.scan.KeyedTableScanTask;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.MetadataColumns;
 import org.apache.iceberg.Schema;
@@ -85,7 +86,7 @@ public class TaskReaderTest extends TableTestBaseWithInitData {
         null,
         true,
         IdentityPartitionConverters::convertConstant,
-        null, false, 0l, testKeyedTable.id().toString()
+        null, false, new StructLikeFactory(0l, testKeyedTable.id().toString())
     );
     ImmutableList.Builder<Record> builder = ImmutableList.builder();
     for (CombinedScanTask combinedScanTask: combinedScanTasks){
@@ -161,8 +162,7 @@ public class TaskReaderTest extends TableTestBaseWithInitData {
         false,
         IdentityPartitionConverters::convertConstant,
         false,
-        0l,
-        testKeyedTable.id().toString()
+        new StructLikeFactory(0l, testKeyedTable.id().toString())
     );
 
     ImmutableList.Builder<Record> builder = ImmutableList.builder();
@@ -242,7 +242,7 @@ public class TaskReaderTest extends TableTestBaseWithInitData {
         null,
         true,
         IdentityPartitionConverters::convertConstant,
-        null, false, 0l, testKeyedTable.id().toString()
+        null, false, new StructLikeFactory(0l, testKeyedTable.id().toString())
     );
     ImmutableList.Builder<Record> builder = ImmutableList.builder();
     for (CombinedScanTask combinedScanTask: combinedScanTasks){

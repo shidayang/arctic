@@ -24,6 +24,7 @@ import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.scan.ArcticFileScanTask;
 import com.netease.arctic.table.PrimaryKeySpec;
 import com.netease.arctic.utils.NodeFilter;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.StructLike;
@@ -55,17 +56,15 @@ public abstract class BaseIcebergDataReader<T> {
   protected final BiFunction<Type, Object, Object> convertConstant;
   protected final Filter<T> dataNodeFilter;
   protected final boolean reuseContainer;
-  private Long maxInMemorySizeInBytes;
-  private String mapIdentifier;
+  private StructLikeFactory structLikeFactory = new StructLikeFactory();
 
   public BaseIcebergDataReader(
       ArcticFileIO fileIO, Schema tableSchema, Schema projectedSchema,
       String nameMapping, boolean caseSensitive, BiFunction<Type, Object, Object> convertConstant,
-      boolean reuseContainer, Long maxInMemorySizeInBytes, String mapIdentifier) {
+      boolean reuseContainer, StructLikeFactory structLikeFactory) {
     this(fileIO, tableSchema, projectedSchema, null, nameMapping,
         caseSensitive, convertConstant, null, reuseContainer);
-    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
-    this.mapIdentifier = mapIdentifier;
+    this.structLikeFactory = structLikeFactory;
   }
 
   public BaseIcebergDataReader(
@@ -100,7 +99,7 @@ public abstract class BaseIcebergDataReader<T> {
     Map<Integer, ?> idToConstant = DataReaderCommon.getIdToConstant(task, projectedSchema, convertConstant);
 
     DeleteFilter<T> deleteFilter =
-        new GenericDeleteFilter(task, tableSchema, projectedSchema, maxInMemorySizeInBytes, mapIdentifier);
+        new GenericDeleteFilter(task, tableSchema, projectedSchema, structLikeFactory);
 
     CloseableIterable<T> iterable = deleteFilter.filter(
         newIterable(task, deleteFilter.requiredSchema(), idToConstant)
@@ -164,9 +163,8 @@ public abstract class BaseIcebergDataReader<T> {
     GenericDeleteFilter(FileScanTask task,
                         Schema tableSchema,
                         Schema requestedSchema,
-                        Long maxInMemorySizeInBytes,
-                        String mapIdentifier) {
-      super(task, tableSchema, requestedSchema, maxInMemorySizeInBytes, mapIdentifier);
+                        StructLikeFactory structLikeFactory) {
+      super(task, tableSchema, requestedSchema, structLikeFactory);
       this.asStructLike = toStructLikeFunction().apply(requiredSchema());
     }
 

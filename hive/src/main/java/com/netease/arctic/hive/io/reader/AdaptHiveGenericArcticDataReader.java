@@ -23,6 +23,7 @@ import com.netease.arctic.iceberg.optimize.InternalRecordWrapper;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.reader.BaseArcticDataReader;
 import com.netease.arctic.table.PrimaryKeySpec;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.data.Record;
@@ -51,10 +52,9 @@ public class AdaptHiveGenericArcticDataReader extends AdaptHiveBaseArcticDataRea
       BiFunction<Type, Object, Object> convertConstant,
       Set<DataTreeNode> sourceNodes,
       boolean reuseContainer,
-      Long maxInMemorySizeInBytes,
-      String mapIdentifier) {
+      StructLikeFactory structLikeFactory) {
     super(fileIO, tableSchema, projectedSchema, primaryKeySpec, nameMapping, caseSensitive, convertConstant,
-        sourceNodes, reuseContainer, maxInMemorySizeInBytes, mapIdentifier);
+        sourceNodes, reuseContainer, structLikeFactory);
   }
 
   public AdaptHiveGenericArcticDataReader(

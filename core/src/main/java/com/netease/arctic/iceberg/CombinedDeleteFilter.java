@@ -23,11 +23,9 @@ import com.netease.arctic.iceberg.optimize.InternalRecordWrapper;
 import com.netease.arctic.iceberg.optimize.StructProjection;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.CloseablePredicate;
-import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.scan.CombinedIcebergScanTask;
 import com.netease.arctic.utils.map.StructLikeBaseMap;
-import com.netease.arctic.utils.map.StructLikeMemoryMap;
-import com.netease.arctic.utils.map.StructLikeSpillableMap;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.MetadataColumns;
@@ -92,17 +90,14 @@ public abstract class CombinedDeleteFilter<T> {
   private CloseablePredicate<T> eqPredicate;
   private final Schema deleteSchema;
 
-  private Long maxInMemorySizeInBytes;
-  private String mapIdentifier;
+  private StructLikeFactory structLikeFactory = new StructLikeFactory();
 
   protected CombinedDeleteFilter(CombinedIcebergScanTask task,
                                  Schema tableSchema,
                                  Schema requestedSchema,
-                                 Long maxInMemorySizeInBytes,
-                                 String mapIdentifier) {
+                                 StructLikeFactory structLikeFactory) {
     this(task, tableSchema, requestedSchema);
-    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
-    this.mapIdentifier = mapIdentifier;
+    this.structLikeFactory = structLikeFactory;
   }
 
   protected CombinedDeleteFilter(CombinedIcebergScanTask task, Schema tableSchema, Schema requestedSchema) {
@@ -205,12 +200,7 @@ public abstract class CombinedDeleteFilter<T> {
 
     InternalRecordWrapper internalRecordWrapper = new InternalRecordWrapper(deleteSchema.asStruct());
 
-    StructLikeBaseMap<Long> structLikeMap;
-    if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
-      structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
-    } else {
-      structLikeMap = StructLikeSpillableMap.create(pkSchema.asStruct(), maxInMemorySizeInBytes, mapIdentifier);
-    }
+    StructLikeBaseMap<Long> structLikeMap = structLikeFactory.createStructLikeMap(pkSchema.asStruct());
 
     //init map
     try (CloseableIterable<RecordWithLsn> deletes = deleteRecords) {
@@ -475,9 +465,6 @@ public abstract class CombinedDeleteFilter<T> {
     @Override
     public void close() throws IOException {
       closeableIterator.close();
-      if (eqPredicate != null) {
-        eqPredicate.close();
-      }
     }
 
     @Override
