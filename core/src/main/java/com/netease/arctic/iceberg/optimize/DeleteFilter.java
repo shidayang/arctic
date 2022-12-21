@@ -20,6 +20,7 @@ package com.netease.arctic.iceberg.optimize;
 
 import com.netease.arctic.io.CloseablePredicate;
 import com.netease.arctic.utils.StructLikeSet;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.DeleteFile;
@@ -77,6 +78,16 @@ public abstract class DeleteFilter<T> {
   private List<CloseablePredicate<T>> eqDeletePredicate;
   private Set<Long> positionSet;
 
+  private StructLikeFactory structLikeFactory;
+
+  protected DeleteFilter(FileScanTask task,
+                         Schema tableSchema,
+                         Schema requestedSchema,
+                         StructLikeFactory structLikeFactory) {
+    this(task, tableSchema, requestedSchema);
+    this.structLikeFactory = structLikeFactory;
+  }
+
   protected DeleteFilter(FileScanTask task, Schema tableSchema, Schema requestedSchema) {
     this.setFilterThreshold = DEFAULT_SET_FILTER_THRESHOLD;
     this.dataFile = task.file();
@@ -118,7 +129,7 @@ public abstract class DeleteFilter<T> {
   }
 
   public CloseableIterable<T> filter(CloseableIterable<T> records) {
-    return applyEqDeletes(applyPosDeletes(records));
+    return new CloseableIterableWithOtherCloseable<>(applyEqDeletes(applyPosDeletes(records)));
   }
 
   private List<CloseablePredicate<T>> applyEqDeletes() {
@@ -150,7 +161,7 @@ public abstract class DeleteFilter<T> {
       StructLikeSet deleteSet = Deletes.toEqualitySet(
           // copy the delete records because they will be held in a set
           CloseableIterable.transform(CloseableIterable.concat(deleteRecords), Record::copy),
-          deleteSchema.asStruct());
+          deleteSchema.asStruct(), structLikeFactory);
 
       Predicate<T> isInDeleteSet = record -> deleteSet.contains(projectRow.wrap(asStructLike(record)));
       CloseablePredicate<T> closeablePredicate = new CloseablePredicate<>(isInDeleteSet, deleteSet);
@@ -309,11 +320,6 @@ public abstract class DeleteFilter<T> {
     @Override
     public void close() throws IOException {
       inner.close();
-      if (eqDeletePredicate != null) {
-        for (CloseablePredicate closeablePredicate: eqDeletePredicate) {
-          closeablePredicate.close();
-        }
-      }
     }
   }
 

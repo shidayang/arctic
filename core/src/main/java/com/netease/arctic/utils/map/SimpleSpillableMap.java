@@ -22,7 +22,6 @@ import org.apache.commons.lang.Validate;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 import org.openjdk.jol.info.GraphLayout;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.Optional;
 

@@ -26,6 +26,7 @@ import org.apache.iceberg.StructLike;
 import org.apache.iceberg.types.Types;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 public class StructLikeSet implements Closeable {
 

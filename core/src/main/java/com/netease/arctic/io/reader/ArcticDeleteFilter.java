@@ -30,7 +30,8 @@ import com.netease.arctic.scan.KeyedTableScanTask;
 import com.netease.arctic.table.MetadataColumns;
 import com.netease.arctic.table.PrimaryKeySpec;
 import com.netease.arctic.utils.NodeFilter;
-import com.netease.arctic.utils.map.StructLikeMemoryMap;
+import com.netease.arctic.utils.map.StructLikeBaseMap;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.Schema;
@@ -98,10 +99,20 @@ public abstract class ArcticDeleteFilter<T> {
   private String currentDataPath;
   private Set<Long> currentPosSet;
 
+  private StructLikeFactory structLikeFactory = new StructLikeFactory();
+
   protected ArcticDeleteFilter(
           KeyedTableScanTask keyedTableScanTask, Schema tableSchema,
           Schema requestedSchema, PrimaryKeySpec primaryKeySpec) {
     this(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec, null);
+  }
+
+  protected ArcticDeleteFilter(
+      KeyedTableScanTask keyedTableScanTask, Schema tableSchema,
+      Schema requestedSchema, PrimaryKeySpec primaryKeySpec,
+      Set<DataTreeNode> sourceNodes, StructLikeFactory structLikeFactory) {
+    this(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec, sourceNodes);
+    this.structLikeFactory = structLikeFactory;
   }
 
   protected ArcticDeleteFilter(
@@ -228,11 +239,11 @@ public abstract class ArcticDeleteFilter<T> {
     CloseableIterable<StructLike> structLikeIterable = CloseableIterable.transform(
             records, record -> new InternalRecordWrapper(deleteSchema.asStruct()).wrap(record));
 
-    StructLikeMemoryMap<ChangedLsn> structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    StructLikeBaseMap<ChangedLsn> structLikeMap = structLikeFactory.createStructLikeMap(pkSchema.asStruct());
     //init map
     try (CloseableIterable<StructLike> deletes = structLikeIterable) {
       Iterator<StructLike> it = getArcticFileIo() == null ? deletes.iterator()
-              : getArcticFileIo().doAs(deletes::iterator);
+          : getArcticFileIo().doAs(deletes::iterator);
       while (it.hasNext()) {
         StructLike structLike = it.next();
         StructLike deletePK = deletePKProjectRow.copyWrap(structLike);
@@ -465,9 +476,6 @@ public abstract class ArcticDeleteFilter<T> {
     @Override
     public void close() throws IOException {
       inner.close();
-      if (eqPredicate != null) {
-        eqPredicate.close();
-      }
     }
   }
 

@@ -23,9 +23,9 @@ import com.netease.arctic.iceberg.optimize.InternalRecordWrapper;
 import com.netease.arctic.iceberg.optimize.StructProjection;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.CloseablePredicate;
-import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.scan.CombinedIcebergScanTask;
-import com.netease.arctic.utils.map.StructLikeMemoryMap;
+import com.netease.arctic.utils.map.StructLikeBaseMap;
+import com.netease.arctic.utils.map.StructLikeFactory;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.MetadataColumns;
@@ -89,6 +89,16 @@ public abstract class CombinedDeleteFilter<T> {
 
   private CloseablePredicate<T> eqPredicate;
   private final Schema deleteSchema;
+
+  private StructLikeFactory structLikeFactory = new StructLikeFactory();
+
+  protected CombinedDeleteFilter(CombinedIcebergScanTask task,
+                                 Schema tableSchema,
+                                 Schema requestedSchema,
+                                 StructLikeFactory structLikeFactory) {
+    this(task, tableSchema, requestedSchema);
+    this.structLikeFactory = structLikeFactory;
+  }
 
   protected CombinedDeleteFilter(CombinedIcebergScanTask task, Schema tableSchema, Schema requestedSchema) {
     ImmutableList.Builder<IcebergContentFile> posDeleteBuilder = ImmutableList.builder();
@@ -190,7 +200,8 @@ public abstract class CombinedDeleteFilter<T> {
 
     InternalRecordWrapper internalRecordWrapper = new InternalRecordWrapper(deleteSchema.asStruct());
 
-    StructLikeMemoryMap<Long> structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    StructLikeBaseMap<Long> structLikeMap = structLikeFactory.createStructLikeMap(pkSchema.asStruct());
+
     //init map
     try (CloseableIterable<RecordWithLsn> deletes = deleteRecords) {
       Iterator<RecordWithLsn> it = getArcticFileIo() == null ? deletes.iterator()
@@ -454,9 +465,6 @@ public abstract class CombinedDeleteFilter<T> {
     @Override
     public void close() throws IOException {
       closeableIterator.close();
-      if (eqPredicate != null) {
-        eqPredicate.close();
-      }
     }
 
     @Override
