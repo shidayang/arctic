@@ -25,7 +25,9 @@ import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.CloseablePredicate;
 import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.scan.CombinedIcebergScanTask;
+import com.netease.arctic.utils.map.StructLikeBaseMap;
 import com.netease.arctic.utils.map.StructLikeMemoryMap;
+import com.netease.arctic.utils.map.StructLikeSpillableMap;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.MetadataColumns;
@@ -89,6 +91,19 @@ public abstract class CombinedDeleteFilter<T> {
 
   private CloseablePredicate<T> eqPredicate;
   private final Schema deleteSchema;
+
+  private Long maxInMemorySizeInBytes;
+  private String mapIdentifier;
+
+  protected CombinedDeleteFilter(CombinedIcebergScanTask task,
+                                 Schema tableSchema,
+                                 Schema requestedSchema,
+                                 Long maxInMemorySizeInBytes,
+                                 String mapIdentifier) {
+    this(task, tableSchema, requestedSchema);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
+  }
 
   protected CombinedDeleteFilter(CombinedIcebergScanTask task, Schema tableSchema, Schema requestedSchema) {
     ImmutableList.Builder<IcebergContentFile> posDeleteBuilder = ImmutableList.builder();
@@ -190,7 +205,13 @@ public abstract class CombinedDeleteFilter<T> {
 
     InternalRecordWrapper internalRecordWrapper = new InternalRecordWrapper(deleteSchema.asStruct());
 
-    StructLikeMemoryMap<Long> structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    StructLikeBaseMap<Long> structLikeMap;
+    if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
+      structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    } else {
+      structLikeMap = StructLikeSpillableMap.create(pkSchema.asStruct(), maxInMemorySizeInBytes, mapIdentifier);
+    }
+
     //init map
     try (CloseableIterable<RecordWithLsn> deletes = deleteRecords) {
       Iterator<RecordWithLsn> it = getArcticFileIo() == null ? deletes.iterator()

@@ -59,6 +59,26 @@ public abstract class BaseArcticDataReader<T> {
   protected final BiFunction<Type, Object, Object> convertConstant;
   protected final PrimaryKeySpec primaryKeySpec;
   protected final boolean reuseContainer;
+  private Long maxInMemorySizeInBytes;
+  private String mapIdentifier;
+
+  public BaseArcticDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
+      PrimaryKeySpec primaryKeySpec,
+      String nameMapping,
+      boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant,
+      Set<DataTreeNode> sourceNodes,
+      boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    this(fileIO, tableSchema, projectedSchema, primaryKeySpec, nameMapping, caseSensitive,
+        convertConstant, sourceNodes, reuseContainer);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
+  }
 
   public BaseArcticDataReader(
       ArcticFileIO fileIO,
@@ -94,10 +114,18 @@ public abstract class BaseArcticDataReader<T> {
   }
 
   public CloseableIterator<T> readData(KeyedTableScanTask keyedTableScanTask) {
+    ArcticDeleteFilter<T> arcticDeleteFilter;
+    if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
+      arcticDeleteFilter = new GenericArcticDeleteFilter(
+          keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes
+      );
+    } else {
+      arcticDeleteFilter = new GenericArcticDeleteFilter(
+          keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes,
+          maxInMemorySizeInBytes, mapIdentifier
+      );
+    }
 
-    ArcticDeleteFilter<T> arcticDeleteFilter = new GenericArcticDeleteFilter(
-        keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes
-    );
     Schema newProjectedSchema = arcticDeleteFilter.requiredSchema();
 
     CloseableIterable<T> dataIterable = CloseableIterable.concat(CloseableIterable.transform(
@@ -111,10 +139,19 @@ public abstract class BaseArcticDataReader<T> {
     List<PrimaryKeyedFile> equDeleteFiles = keyedTableScanTask.arcticEquityDeletes().stream()
         .map(ArcticFileScanTask::file).collect(Collectors.toList());
 
+    ArcticDeleteFilter<T> arcticDeleteFilter;
     if (!equDeleteFiles.isEmpty()) {
-      ArcticDeleteFilter<T> arcticDeleteFilter = new GenericArcticDeleteFilter(
-          keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes
-      );
+      if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
+        arcticDeleteFilter = new GenericArcticDeleteFilter(
+            keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes
+        );
+      } else {
+        arcticDeleteFilter = new GenericArcticDeleteFilter(
+            keyedTableScanTask, tableSchema, projectedSchema, primaryKeySpec, sourceNodes,
+            maxInMemorySizeInBytes, mapIdentifier
+        );
+      }
+
       Schema newProjectedSchema = arcticDeleteFilter.requiredSchema();
 
       CloseableIterable<T> dataIterable = CloseableIterable.concat(CloseableIterable.transform(
@@ -161,6 +198,19 @@ public abstract class BaseArcticDataReader<T> {
         KeyedTableScanTask keyedTableScanTask,
         Schema tableSchema, Schema requestedSchema, PrimaryKeySpec primaryKeySpec) {
       super(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec);
+      this.asStructLike = BaseArcticDataReader.this.toStructLikeFunction().apply(requiredSchema());
+    }
+
+    protected GenericArcticDeleteFilter(
+        KeyedTableScanTask keyedTableScanTask,
+        Schema tableSchema,
+        Schema requestedSchema,
+        PrimaryKeySpec primaryKeySpec,
+        Set<DataTreeNode> sourceNodes,
+        Long maxInMemorySizeInBytes,
+        String mapIdentifier) {
+      super(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec,
+          sourceNodes, maxInMemorySizeInBytes, mapIdentifier);
       this.asStructLike = BaseArcticDataReader.this.toStructLikeFunction().apply(requiredSchema());
     }
 

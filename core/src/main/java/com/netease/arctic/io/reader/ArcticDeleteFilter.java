@@ -30,8 +30,9 @@ import com.netease.arctic.scan.KeyedTableScanTask;
 import com.netease.arctic.table.MetadataColumns;
 import com.netease.arctic.table.PrimaryKeySpec;
 import com.netease.arctic.utils.NodeFilter;
+import com.netease.arctic.utils.map.StructLikeBaseMap;
 import com.netease.arctic.utils.map.StructLikeMemoryMap;
-import java.io.Closeable;
+import com.netease.arctic.utils.map.StructLikeSpillableMap;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.Schema;
@@ -99,10 +100,22 @@ public abstract class ArcticDeleteFilter<T> {
   private String currentDataPath;
   private Set<Long> currentPosSet;
 
+  private Long maxInMemorySizeInBytes;
+  private String mapIdentifier;
+
   protected ArcticDeleteFilter(
           KeyedTableScanTask keyedTableScanTask, Schema tableSchema,
           Schema requestedSchema, PrimaryKeySpec primaryKeySpec) {
     this(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec, null);
+  }
+
+  protected ArcticDeleteFilter(
+      KeyedTableScanTask keyedTableScanTask, Schema tableSchema,
+      Schema requestedSchema, PrimaryKeySpec primaryKeySpec,
+      Set<DataTreeNode> sourceNodes, Long maxInMemorySizeInBytes, String mapIdentifier) {
+    this(keyedTableScanTask, tableSchema, requestedSchema, primaryKeySpec, sourceNodes);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
   }
 
   protected ArcticDeleteFilter(
@@ -229,11 +242,16 @@ public abstract class ArcticDeleteFilter<T> {
     CloseableIterable<StructLike> structLikeIterable = CloseableIterable.transform(
             records, record -> new InternalRecordWrapper(deleteSchema.asStruct()).wrap(record));
 
-    StructLikeMemoryMap<ChangedLsn> structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    StructLikeBaseMap<ChangedLsn> structLikeMap;
+    if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
+      structLikeMap = StructLikeMemoryMap.create(pkSchema.asStruct());
+    } else {
+      structLikeMap = StructLikeSpillableMap.create(pkSchema.asStruct(), maxInMemorySizeInBytes, mapIdentifier);
+    }
     //init map
     try (CloseableIterable<StructLike> deletes = structLikeIterable) {
       Iterator<StructLike> it = getArcticFileIo() == null ? deletes.iterator()
-              : getArcticFileIo().doAs(deletes::iterator);
+          : getArcticFileIo().doAs(deletes::iterator);
       while (it.hasNext()) {
         StructLike structLike = it.next();
         StructLike deletePK = deletePKProjectRow.copyWrap(structLike);

@@ -53,6 +53,20 @@ public class GenericCombinedIcebergDataReader {
   protected final BiFunction<Type, Object, Object> convertConstant;
   protected final boolean reuseContainer;
 
+  protected Long maxInMemorySizeInBytes;
+  protected String mapIdentifier;
+
+  public GenericCombinedIcebergDataReader(
+      ArcticFileIO fileIO, Schema tableSchema, Schema projectedSchema,
+      String nameMapping, boolean caseSensitive, BiFunction<Type, Object, Object> convertConstant,
+      boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    this(fileIO, tableSchema, projectedSchema, nameMapping, caseSensitive, convertConstant, reuseContainer);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
+  }
+
   public GenericCombinedIcebergDataReader(
       ArcticFileIO fileIO, Schema tableSchema, Schema projectedSchema,
       String nameMapping, boolean caseSensitive, BiFunction<Type, Object, Object> convertConstant,
@@ -67,7 +81,8 @@ public class GenericCombinedIcebergDataReader {
   }
 
   public CloseableIterable<Record> readData(CombinedIcebergScanTask task) {
-    CombinedDeleteFilter<Record> deleteFilter = new GenericDeleteFilter(task, tableSchema, projectedSchema);
+    CombinedDeleteFilter<Record> deleteFilter =
+        new GenericDeleteFilter(task, tableSchema, projectedSchema, maxInMemorySizeInBytes, mapIdentifier);
 
     CloseableIterable<Record> concat = CloseableIterable.concat(CloseableIterable.transform(
         CloseableIterable.withNoopClose(task.getDataFiles()),
@@ -79,7 +94,8 @@ public class GenericCombinedIcebergDataReader {
   }
 
   public CloseableIterable<Record> readDeleteData(CombinedIcebergScanTask task) {
-    CombinedDeleteFilter<Record> deleteFilter = new GenericDeleteFilter(task, tableSchema, projectedSchema);
+    CombinedDeleteFilter<Record> deleteFilter =
+        new GenericDeleteFilter(task, tableSchema, projectedSchema, maxInMemorySizeInBytes, mapIdentifier);
 
     CloseableIterable<Record> concat = CloseableIterable.concat(CloseableIterable.transform(
         CloseableIterable.withNoopClose(task.getDataFiles()),
@@ -141,6 +157,16 @@ public class GenericCombinedIcebergDataReader {
   protected class GenericDeleteFilter extends CombinedDeleteFilter<Record> {
 
     private InternalRecordWrapper internalRecordWrapper;
+
+    protected GenericDeleteFilter(
+        CombinedIcebergScanTask task,
+        Schema tableSchema,
+        Schema requestedSchema,
+        Long maxInMemorySizeInBytes,
+        String mapIdentifier) {
+      super(task, tableSchema, requestedSchema, maxInMemorySizeInBytes, mapIdentifier);
+      internalRecordWrapper = new InternalRecordWrapper(requiredSchema().asStruct());
+    }
 
     protected GenericDeleteFilter(
         CombinedIcebergScanTask task,

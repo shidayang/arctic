@@ -59,6 +59,21 @@ public class GenericArcticDataReader extends BaseArcticDataReader<Record> {
       String nameMapping,
       boolean caseSensitive,
       BiFunction<Type, Object, Object> convertConstant,
+      Set<DataTreeNode> sourceNodes, boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    super(fileIO, tableSchema, projectedSchema, primaryKeySpec,
+        nameMapping, caseSensitive, convertConstant, sourceNodes, reuseContainer, maxInMemorySizeInBytes, mapIdentifier);
+  }
+
+  public GenericArcticDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
+      PrimaryKeySpec primaryKeySpec,
+      String nameMapping,
+      boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant,
       Set<DataTreeNode> sourceNodes, boolean reuseContainer) {
     super(fileIO, tableSchema, projectedSchema, primaryKeySpec,
         nameMapping, caseSensitive, convertConstant, sourceNodes, reuseContainer);

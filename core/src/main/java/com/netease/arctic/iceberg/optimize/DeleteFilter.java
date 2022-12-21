@@ -19,9 +19,7 @@
 package com.netease.arctic.iceberg.optimize;
 
 import com.netease.arctic.io.CloseablePredicate;
-import com.netease.arctic.io.reader.ArcticDeleteFilter;
 import com.netease.arctic.utils.StructLikeSet;
-import java.io.IOException;
 import org.apache.iceberg.Accessor;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.DeleteFile;
@@ -52,6 +50,7 @@ import org.apache.iceberg.util.Filter;
 import org.apache.iceberg.util.StructProjection;
 import org.apache.parquet.Preconditions;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +76,19 @@ public abstract class DeleteFilter<T> {
   private final Accessor<StructLike> posAccessor;
   private List<CloseablePredicate<T>> eqDeletePredicate;
   private Set<Long> positionSet;
+
+  private Long maxInMemorySizeInBytes;
+  private String mapIdentifier;
+
+  protected DeleteFilter(FileScanTask task,
+                         Schema tableSchema,
+                         Schema requestedSchema,
+                         Long maxInMemorySizeInBytes,
+                         String mapIdentifier) {
+    this(task, tableSchema, requestedSchema);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
+  }
 
   protected DeleteFilter(FileScanTask task, Schema tableSchema, Schema requestedSchema) {
     this.setFilterThreshold = DEFAULT_SET_FILTER_THRESHOLD;
@@ -151,7 +163,7 @@ public abstract class DeleteFilter<T> {
       StructLikeSet deleteSet = Deletes.toEqualitySet(
           // copy the delete records because they will be held in a set
           CloseableIterable.transform(CloseableIterable.concat(deleteRecords), Record::copy),
-          deleteSchema.asStruct());
+          deleteSchema.asStruct(), maxInMemorySizeInBytes, mapIdentifier);
 
       Predicate<T> isInDeleteSet = record -> deleteSet.contains(projectRow.wrap(asStructLike(record)));
       CloseablePredicate<T> closeablePredicate = new CloseablePredicate<>(isInDeleteSet, deleteSet);

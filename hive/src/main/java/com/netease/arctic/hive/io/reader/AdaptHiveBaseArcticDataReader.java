@@ -37,6 +37,33 @@ import java.util.function.BiFunction;
  * AdaptHive can read all Data.
  */
 public abstract class AdaptHiveBaseArcticDataReader<T> extends BaseArcticDataReader<T> {
+
+  public AdaptHiveBaseArcticDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
+      PrimaryKeySpec primaryKeySpec,
+      String nameMapping,
+      boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant,
+      Set<DataTreeNode> sourceNodes,
+      boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    super(
+        fileIO,
+        tableSchema,
+        projectedSchema,
+        primaryKeySpec,
+        nameMapping,
+        caseSensitive,
+        convertConstant,
+        sourceNodes,
+        reuseContainer,
+        maxInMemorySizeInBytes,
+        mapIdentifier);
+  }
+
   public AdaptHiveBaseArcticDataReader(
       ArcticFileIO fileIO,
       Schema tableSchema,

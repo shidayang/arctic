@@ -55,6 +55,18 @@ public abstract class BaseIcebergDataReader<T> {
   protected final BiFunction<Type, Object, Object> convertConstant;
   protected final Filter<T> dataNodeFilter;
   protected final boolean reuseContainer;
+  private Long maxInMemorySizeInBytes;
+  private String mapIdentifier;
+
+  public BaseIcebergDataReader(
+      ArcticFileIO fileIO, Schema tableSchema, Schema projectedSchema,
+      String nameMapping, boolean caseSensitive, BiFunction<Type, Object, Object> convertConstant,
+      boolean reuseContainer, Long maxInMemorySizeInBytes, String mapIdentifier) {
+    this(fileIO, tableSchema, projectedSchema, null, nameMapping,
+        caseSensitive, convertConstant, null, reuseContainer);
+    this.maxInMemorySizeInBytes = maxInMemorySizeInBytes;
+    this.mapIdentifier = mapIdentifier;
+  }
 
   public BaseIcebergDataReader(
       ArcticFileIO fileIO, Schema tableSchema, Schema projectedSchema,
@@ -87,7 +99,8 @@ public abstract class BaseIcebergDataReader<T> {
 
     Map<Integer, ?> idToConstant = DataReaderCommon.getIdToConstant(task, projectedSchema, convertConstant);
 
-    DeleteFilter<T> deleteFilter = new GenericDeleteFilter(task, tableSchema, projectedSchema);
+    DeleteFilter<T> deleteFilter =
+        new GenericDeleteFilter(task, tableSchema, projectedSchema, maxInMemorySizeInBytes, mapIdentifier);
 
     CloseableIterable<T> iterable = deleteFilter.filter(
         newIterable(task, deleteFilter.requiredSchema(), idToConstant)
@@ -147,6 +160,15 @@ public abstract class BaseIcebergDataReader<T> {
   protected class GenericDeleteFilter extends DeleteFilter<T> {
 
     protected Function<T, StructLike> asStructLike;
+
+    GenericDeleteFilter(FileScanTask task,
+                        Schema tableSchema,
+                        Schema requestedSchema,
+                        Long maxInMemorySizeInBytes,
+                        String mapIdentifier) {
+      super(task, tableSchema, requestedSchema, maxInMemorySizeInBytes, mapIdentifier);
+      this.asStructLike = toStructLikeFunction().apply(requiredSchema());
+    }
 
     GenericDeleteFilter(FileScanTask task, Schema tableSchema, Schema requestedSchema) {
       super(task, tableSchema, requestedSchema);

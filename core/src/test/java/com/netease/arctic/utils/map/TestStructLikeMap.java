@@ -7,6 +7,7 @@ import org.apache.iceberg.types.Types;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Map;
@@ -54,17 +55,17 @@ public class TestStructLikeMap {
   }
 
   @Test
-  public void testMemoryMap() throws UnsupportedEncodingException {
+  public void testMemoryMap() throws UnsupportedEncodingException, IOException {
     testMap(StructLikeMemoryMap.create(TYPE));
   }
 
   @Test
-  public void testSpillableMap() throws UnsupportedEncodingException {
+  public void testSpillableMap() throws UnsupportedEncodingException, IOException {
     testMap(StructLikeSpillableMap.create(TYPE,
             0L, TestRocksDBBackend.CF_NAME));
   }
 
-  private void testMap(StructLikeBaseMap actualMap) throws UnsupportedEncodingException {
+  private void testMap(StructLikeBaseMap actualMap) throws UnsupportedEncodingException, IOException {
     Map<StructLike, ChangedLsn> expectedMap = Maps.newHashMap();
     for (long i = 0; i < 1; i++) {
       StructLikeImpl key = new StructLikeImpl();

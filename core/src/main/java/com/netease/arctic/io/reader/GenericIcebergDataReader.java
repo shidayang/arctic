@@ -51,6 +51,29 @@ public class GenericIcebergDataReader extends BaseIcebergDataReader<Record> {
       ArcticFileIO fileIO,
       Schema tableSchema,
       Schema projectedSchema,
+      String nameMapping,
+      boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant,
+      boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    super(
+        fileIO,
+        tableSchema,
+        projectedSchema,
+        nameMapping,
+        caseSensitive,
+        convertConstant,
+        reuseContainer,
+        maxInMemorySizeInBytes,
+        mapIdentifier);
+  }
+
+
+  public GenericIcebergDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
       PrimaryKeySpec primaryKeySpec,
       String nameMapping,
       boolean caseSensitive,

@@ -48,6 +48,22 @@ public class AdaptHiveGenericArcticDataReader extends AdaptHiveBaseArcticDataRea
       PrimaryKeySpec primaryKeySpec,
       String nameMapping,
       boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant,
+      Set<DataTreeNode> sourceNodes,
+      boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    super(fileIO, tableSchema, projectedSchema, primaryKeySpec, nameMapping, caseSensitive, convertConstant,
+        sourceNodes, reuseContainer, maxInMemorySizeInBytes, mapIdentifier);
+  }
+
+  public AdaptHiveGenericArcticDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
+      PrimaryKeySpec primaryKeySpec,
+      String nameMapping,
+      boolean caseSensitive,
       BiFunction<Type, Object, Object> convertConstant) {
     super(fileIO, tableSchema, projectedSchema, primaryKeySpec, nameMapping, caseSensitive, convertConstant, false);
   }

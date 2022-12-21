@@ -64,9 +64,17 @@ public class Deletes {
     return filter.filter(rows);
   }
 
-  public static StructLikeSet toEqualitySet(CloseableIterable<StructLike> eqDeletes, Types.StructType eqType) {
+  public static StructLikeSet toEqualitySet(CloseableIterable<StructLike> eqDeletes,
+                                            Types.StructType eqType,
+                                            Long maxInMemorySizeInBytes,
+                                            String mapIdentifier) {
     try (CloseableIterable<StructLike> deletes = eqDeletes) {
-      StructLikeSet deleteSet = StructLikeSet.createMemorySet(eqType);
+      StructLikeSet deleteSet;
+      if (maxInMemorySizeInBytes == null || mapIdentifier == null) {
+        deleteSet = StructLikeSet.createMemorySet(eqType);
+      } else {
+        deleteSet = StructLikeSet.createSpillableSet(eqType, maxInMemorySizeInBytes, mapIdentifier);
+      }
       for (StructLike delete : deletes) {
         deleteSet.add(delete);
       }

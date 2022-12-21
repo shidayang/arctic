@@ -18,8 +18,6 @@
 
 package com.netease.arctic.utils.map;
 
-import java.io.IOException;
-
 public interface Serializer<T> {
 
   byte[] serialize(T t);

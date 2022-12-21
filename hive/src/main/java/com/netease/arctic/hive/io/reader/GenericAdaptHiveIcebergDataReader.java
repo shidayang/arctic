@@ -43,6 +43,19 @@ public class GenericAdaptHiveIcebergDataReader extends AdaptHiveBaseIcebergDataR
       Schema projectedSchema,
       String nameMapping,
       boolean caseSensitive,
+      BiFunction<Type, Object, Object> convertConstant, boolean reuseContainer,
+      Long maxInMemorySizeInBytes,
+      String mapIdentifier) {
+    super(fileIO, tableSchema, projectedSchema, nameMapping, caseSensitive, convertConstant, reuseContainer,
+        maxInMemorySizeInBytes, mapIdentifier);
+  }
+
+  public GenericAdaptHiveIcebergDataReader(
+      ArcticFileIO fileIO,
+      Schema tableSchema,
+      Schema projectedSchema,
+      String nameMapping,
+      boolean caseSensitive,
       BiFunction<Type, Object, Object> convertConstant, boolean reuseContainer) {
     super(fileIO, tableSchema, projectedSchema, nameMapping, caseSensitive, convertConstant, reuseContainer);
   }

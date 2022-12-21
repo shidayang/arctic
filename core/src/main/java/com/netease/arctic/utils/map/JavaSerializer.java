@@ -19,6 +19,7 @@
 package com.netease.arctic.utils.map;
 
 import com.netease.arctic.utils.SerializationUtils;
+
 import java.io.IOException;
 import java.io.Serializable;
 
