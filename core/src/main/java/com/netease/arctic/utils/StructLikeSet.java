@@ -21,6 +21,7 @@ package com.netease.arctic.utils;
 import com.netease.arctic.utils.map.StructLikeBaseMap;
 import com.netease.arctic.utils.map.StructLikeMemoryMap;
 import com.netease.arctic.utils.map.StructLikeSpillableMap;
+import java.io.IOException;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.types.Types;
 
