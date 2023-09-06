@@ -18,8 +18,10 @@
 
 package com.netease.arctic.server.catalog;
 
+import com.netease.arctic.AmoroTable;
 import com.netease.arctic.ams.api.CatalogMeta;
 import com.netease.arctic.ams.api.TableIdentifier;
+import com.netease.arctic.formats.mixed.MixedIcebergTable;
 import com.netease.arctic.mixed.BasicMixedIcebergCatalog;
 import com.netease.arctic.table.ArcticTable;
 import java.util.List;
@@ -71,7 +73,11 @@ public class MixedIcebergCatalogImpl extends ExternalCatalog {
   }
 
   @Override
-  public ArcticTable loadTable(String database, String tableName) {
-    return mixedIcebergCatalog.loadTable(com.netease.arctic.table.TableIdentifier.of(name(), database, tableName));
+  public AmoroTable<?> loadTable(String database, String tableName) {
+    ArcticTable arcticTable = mixedIcebergCatalog.loadTable(
+        com.netease.arctic.table.TableIdentifier.of(name(),
+        database,
+        tableName));
+    return new MixedIcebergTable(arcticTable);
   }
 }

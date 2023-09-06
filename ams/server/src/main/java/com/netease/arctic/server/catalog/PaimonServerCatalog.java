@@ -15,7 +15,7 @@ public class PaimonServerCatalog extends ExternalCatalog {
   protected PaimonServerCatalog(CatalogMeta metadata) {
     super(metadata);
     this.paimonCatalog = new CommonUnifiedCatalog(
-        null,
+        this::getMetadata,
         metadata,
         metadata.catalogProperties
     );
@@ -24,11 +24,7 @@ public class PaimonServerCatalog extends ExternalCatalog {
   @Override
   public void updateMetadata(CatalogMeta metadata) {
     super.updateMetadata(metadata);
-    this.paimonCatalog = new CommonUnifiedCatalog(
-        null,
-        metadata,
-        metadata.catalogProperties
-    );
+    paimonCatalog.refresh();
   }
 
   @Override

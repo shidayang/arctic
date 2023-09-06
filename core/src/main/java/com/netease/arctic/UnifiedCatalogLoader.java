@@ -44,7 +44,6 @@ public class UnifiedCatalogLoader {
     };
 
     CatalogMeta catalogMeta = metaSupplier.get();
-    String type = catalogMeta.getCatalogType();
     CatalogUtil.mergeCatalogProperties(catalogMeta, props);
     return new CommonUnifiedCatalog(metaSupplier, catalogMeta, props);
   }
