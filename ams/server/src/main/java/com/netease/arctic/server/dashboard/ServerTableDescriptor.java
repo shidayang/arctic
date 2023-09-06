@@ -4,6 +4,7 @@ import com.netease.arctic.AmoroTable;
 import com.netease.arctic.ams.api.TableFormat;
 import com.netease.arctic.data.DataFileType;
 import com.netease.arctic.data.FileNameRules;
+import com.netease.arctic.op.SnapshotSummary;
 import com.netease.arctic.server.dashboard.model.DDLInfo;
 import com.netease.arctic.server.dashboard.model.PartitionBaseInfo;
 import com.netease.arctic.server.dashboard.model.PartitionFileBaseInfo;
@@ -17,7 +18,6 @@ import com.netease.arctic.server.persistence.mapper.TableMetaMapper;
 import com.netease.arctic.server.table.ServerTableIdentifier;
 import com.netease.arctic.server.table.TableService;
 import com.netease.arctic.table.ArcticTable;
-import com.netease.arctic.trace.SnapshotSummary;
 import com.netease.arctic.utils.ManifestEntryFields;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.iceberg.DataFile;
@@ -39,7 +39,6 @@ import org.apache.iceberg.io.CloseableIterable;
 import org.apache.iceberg.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,7 +116,8 @@ public class ServerTableDescriptor extends PersistentBase {
   }
 
   public List<OptimizingTaskMeta> getOptimizingTasks(long processId) {
-    return getAs(OptimizingMapper.class,
+    return getAs(
+        OptimizingMapper.class,
         mapper -> mapper.selectOptimizeTaskMetas(Collections.singletonList(processId)));
   }
 
@@ -127,7 +127,8 @@ public class ServerTableDescriptor extends PersistentBase {
     }
     List<Long> processIds = processMetaList.stream()
         .map(OptimizingProcessMeta::getProcessId).collect(Collectors.toList());
-    return getAs(OptimizingMapper.class,
+    return getAs(
+        OptimizingMapper.class,
         mapper -> mapper.selectOptimizeTaskMetas(processIds));
   }
 }
